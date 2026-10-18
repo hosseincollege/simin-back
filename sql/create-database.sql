@@ -1,0 +1,5 @@
+IF DB_ID(N'Simin') IS NULL
+BEGIN
+  CREATE DATABASE [Simin];
+END;
+GO

@@ -1,0 +1,17 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlserver"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.NVarChar(200)
+  username     String   @unique @db.NVarChar(100)
+  passwordHash String   @db.NVarChar(100)
+  role         String   @default("user") @db.NVarChar(20)
+  createdAt    DateTime @default(now())
+}
