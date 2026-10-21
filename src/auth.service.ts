@@ -19,7 +19,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(password, 12);
     try {
       return await this.prisma.user.create({
-        data: { name, username, passwordHash, role: 'user' },
+        data: { name, username, passwordHash },
       });
     } catch (error) {
       if (['P2002', '23505', 2601, 2627].includes((error as { code?: string | number }).code ?? '')) {

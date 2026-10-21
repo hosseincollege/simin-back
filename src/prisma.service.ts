@@ -15,18 +15,29 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private readonly pool: sql.ConnectionPool;
 
   readonly user = {
-    create: async ({ data }: { data: Pick<User, 'name' | 'username' | 'passwordHash' | 'role'> }) => {
-      const result = await this.pool.request()
-        .input('name', sql.NVarChar(200), data.name)
-        .input('username', sql.NVarChar(100), data.username)
-        .input('passwordHash', sql.NVarChar(100), data.passwordHash)
-        .input('role', sql.NVarChar(20), data.role)
-        .query<Pick<User, 'id' | 'name' | 'username' | 'role'>>(`
-          INSERT INTO dbo.[User] (name, username, passwordHash, role)
-          OUTPUT INSERTED.id, INSERTED.name, INSERTED.username, INSERTED.role
-          VALUES (@name, @username, @passwordHash, @role)
-        `);
-      return result.recordset[0];
+    create: async ({ data }: { data: Pick<User, 'name' | 'username' | 'passwordHash'> }) => {
+      const transaction = new sql.Transaction(this.pool);
+      await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+      try {
+        const request = new sql.Request(transaction);
+        const existing = await request.query(`SELECT TOP (1) id FROM dbo.[User] WITH (UPDLOCK, HOLDLOCK)`);
+        const role = existing.recordset.length === 0 ? 'admin' : 'user';
+        const result = await new sql.Request(transaction)
+          .input('name', sql.NVarChar(200), data.name)
+          .input('username', sql.NVarChar(100), data.username)
+          .input('passwordHash', sql.NVarChar(100), data.passwordHash)
+          .input('role', sql.NVarChar(20), role)
+          .query<Pick<User, 'id' | 'name' | 'username' | 'role'>>(`
+            INSERT INTO dbo.[User] (name, username, passwordHash, role)
+            OUTPUT INSERTED.id, INSERTED.name, INSERTED.username, INSERTED.role
+            VALUES (@name, @username, @passwordHash, @role)
+          `);
+        await transaction.commit();
+        return result.recordset[0];
+      } catch (error) {
+        await transaction.rollback();
+        throw error;
+      }
     },
     findUnique: async ({ where }: { where: { username: string } }) => {
       const result = await this.pool.request()
