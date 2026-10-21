@@ -1,13 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from './prisma.service.js';
 
 type User = { name: string; username: string; passwordHash: string; role: 'admin' | 'user' };
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly jwt: JwtService) {}
 
   async register(input: { name?: string; username?: string; password?: string }) {
     const name = input.name?.trim();
@@ -39,7 +39,7 @@ export class AuthService {
       throw new UnauthorizedException('نام کاربری یا رمز عبور درست نیست.');
     }
     return {
-      token: randomUUID(),
+      token: await this.jwt.signAsync({ sub: user.id, name: user.name, username: user.username, role: user.role }),
       user: { name: user.name, username: user.username, role: user.role },
     };
   }

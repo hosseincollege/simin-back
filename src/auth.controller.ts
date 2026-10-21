@@ -1,5 +1,27 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+﻿import { Body, CanActivate, Controller, ExecutionContext, Get, HttpCode, HttpStatus, Injectable, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service.js';
+
+type AuthTokenPayload = { sub: number; name: string; username: string; role: string };
+type AuthenticatedRequest = { headers: { authorization?: string }; user?: AuthTokenPayload };
+
+@Injectable()
+export class JwtAuthGuard implements CanActivate {
+  constructor(private readonly jwt: JwtService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const header = request.headers.authorization;
+    const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : '';
+    if (!token) throw new UnauthorizedException();
+    try {
+      request.user = await this.jwt.verifyAsync<AuthTokenPayload>(token);
+      return true;
+    } catch {
+      throw new UnauthorizedException();
+    }
+  }
+}
 
 @Controller('api/auth')
 export class AuthController {
@@ -14,5 +36,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   login(@Body() body: { username?: string; password?: string }) {
     return this.authService.login(body);
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  me(@Req() request: AuthenticatedRequest) {
+    const { sub, name, username, role } = request.user!;
+    return { id: sub, user: { name, username, role } };
   }
 }
