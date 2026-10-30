@@ -7,8 +7,10 @@ import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtAuthGuard } from './auth.controller.js';
 import { PrismaService } from './prisma.service.js';
-import { AdminGuard, WorkshopsController } from './workshops.controller.js';
+import { AdminGuard, ReviewGuard, WorkshopsController } from './workshops.controller.js';
 import { WorkshopsService } from './workshops.service.js';
+import { DocumentsController } from './documents.controller.js';
+import { DocumentsService } from './documents.service.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -31,7 +33,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       serviceId: 'back',
     }),
   ],
-  controllers: [AppController, AuthController, WorkshopsController],
-  providers: [AppService, AuthService, PrismaService, JwtAuthGuard, AdminGuard, WorkshopsService],
+  controllers: [AppController, AuthController, WorkshopsController, DocumentsController],
+  providers: [AppService, AuthService, PrismaService, JwtAuthGuard, AdminGuard, ReviewGuard, WorkshopsService, DocumentsService],
 })
 export class AppModule {}
